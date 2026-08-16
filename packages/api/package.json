@@ -1,0 +1,26 @@
+{
+  "name": "@schema-drift/api",
+  "version": "1.0.0",
+  "description": "Schema Drift API server — Hono + SQLite",
+  "type": "module",
+  "main": "./dist/server.js",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsx watch src/server.ts",
+    "start": "node dist/server.js",
+    "seed": "tsx src/seed.ts"
+  },
+  "dependencies": {
+    "@hono/node-server": "^1.11.1",
+    "@schema-drift/core": "*",
+    "better-sqlite3": "^9.4.3",
+    "hono": "^4.3.11",
+    "nanoid": "^5.0.7"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.10",
+    "@types/node": "^20.11.5",
+    "tsx": "^4.7.1",
+    "typescript": "^5.4.5"
+  }
+}

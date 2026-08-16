@@ -1,0 +1,18 @@
+{
+  "name": "schema-drift",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "npm run build --workspace=packages/core && concurrently -n API,UI -c cyan,magenta \"npm run dev --workspace=packages/api\" \"npm run dev --workspace=packages/dashboard\"",
+    "build": "npm run build --workspaces --if-present",
+    "install:all": "npm install",
+    "seed": "npm run seed --workspace=packages/api"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2",
+    "typescript": "^5.4.5"
+  }
+}
