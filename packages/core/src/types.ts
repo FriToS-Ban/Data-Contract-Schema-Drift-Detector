@@ -19,6 +19,8 @@ export interface SchemaField {
   maximum?: number;
   pattern?: string;
   example?: unknown;
+  arrayItemKind?: 'homogeneous' | 'tuple';
+  tupleItems?: SchemaField[];
 }
 
 // ─── Contract Definition ──────────────────────────────────────────────────────
@@ -141,4 +143,9 @@ export interface InferOptions {
   strictNullability?: boolean;
   schemaVersion?: string;
   description?: string;
+  detectFormats?: boolean;         // default true
+  formatSampleThreshold?: number;  // default 1.0 (fraction of values that must match)
+  detectTuples?: boolean;          // default true
+  tupleMaxLength?: number;         // default 20
+  tupleMinSamples?: number;        // default 5
 }

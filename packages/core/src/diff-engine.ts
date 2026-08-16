@@ -155,14 +155,34 @@ function diffField(
 
   // Format change
   if (base.format !== obs.format) {
-    changes.push({
-      path,
-      changeType: 'FORMAT_CHANGED',
-      severity: 'warning',
-      before: base.format ?? '(none)',
-      after: obs.format ?? '(none)',
-      message: `Format of '${path}' changed: ${base.format ?? 'none'} → ${obs.format ?? 'none'}`,
-    });
+    if (base.format === undefined && obs.format !== undefined) {
+      changes.push({
+        path,
+        changeType: 'FORMAT_CHANGED',
+        severity: 'info',
+        before: base.format,
+        after: obs.format,
+        message: `Format of '${path}' was inferred as '${obs.format}' (no format previously recorded)`,
+      });
+    } else if (base.format !== undefined && obs.format === undefined) {
+      changes.push({
+        path,
+        changeType: 'FORMAT_CHANGED',
+        severity: 'warning',
+        before: base.format,
+        after: obs.format,
+        message: `Format of '${path}' is no longer detected as '${base.format}' — possible data quality drift`,
+      });
+    } else {
+      changes.push({
+        path,
+        changeType: 'FORMAT_CHANGED',
+        severity: 'warning',
+        before: base.format,
+        after: obs.format,
+        message: `Format of '${path}' changed: ${base.format} → ${obs.format}`,
+      });
+    }
   }
 
   // Enum drift
@@ -201,13 +221,54 @@ function diffField(
     diffProperties(base.properties ?? {}, obs.properties ?? {}, path, changes);
   }
 
-  // Array item type
-  if (isArrayType(base) && isArrayType(obs) && base.items && obs.items) {
-    diffField(base.items, obs.items, `${path}[]`, changes);
+  // Array item type / shape
+  if (isArrayType(base) && isArrayType(obs)) {
+    const baseKind = arrayKind(base);
+    const obsKind = arrayKind(obs);
+
+    if (baseKind === 'homogeneous' && obsKind === 'homogeneous') {
+      if (base.items && obs.items) {
+        diffField(base.items, obs.items, `${path}[]`, changes);
+      }
+    } else if (baseKind !== obsKind) {
+      changes.push({
+        path,
+        changeType: 'STRUCTURE_CHANGED',
+        severity: 'critical',
+        before: baseKind,
+        after: obsKind,
+        message: `Array shape of '${path}' changed from ${baseKind} to ${obsKind} (breaking)`,
+      });
+    } else if (baseKind === 'tuple' && obsKind === 'tuple') {
+      const baseLen = base.tupleItems?.length ?? 0;
+      const obsLen = obs.tupleItems?.length ?? 0;
+
+      if (baseLen !== obsLen) {
+        changes.push({
+          path,
+          changeType: 'STRUCTURE_CHANGED',
+          severity: 'critical',
+          before: baseLen,
+          after: obsLen,
+          message: `Tuple length of '${path}' changed: ${baseLen} → ${obsLen} (breaking)`,
+        });
+      }
+
+      const minLen = Math.min(baseLen, obsLen);
+      for (let i = 0; i < minLen; i++) {
+        if (base.tupleItems && obs.tupleItems) {
+          diffField(base.tupleItems[i], obs.tupleItems[i], `${path}[${i}]`, changes);
+        }
+      }
+    }
   }
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
+
+function arrayKind(f: SchemaField): 'homogeneous' | 'tuple' {
+  return f.arrayItemKind ?? 'homogeneous';
+}
 
 function normalizeType(type: SchemaField['type']): string {
   if (Array.isArray(type)) return [...type].sort().join(' | ');
